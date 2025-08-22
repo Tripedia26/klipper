@@ -114,7 +114,7 @@ jobs:
           ./scripts/update_mks_robin.py out/klipper.bin out/Robin_e3.bin
 
       - name: Upload Firmware to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Robin_e3-firmware
           path: klipper/out/Robin_e3.bin
