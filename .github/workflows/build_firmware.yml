@@ -1,0 +1,45 @@
+# GitHub Actions kullanarak özel Klipper firmware'i derler.
+# Bu dosya, `make menuconfig` ile yaptığınız ayarları sabit olarak içerir.
+
+name: Build Klipper Firmware
+
+on:
+  # Sadece manuel olarak çalıştırılacak
+  workflow_dispatch:
+
+jobs:
+  build_firmware:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Build Klipper Firmware
+        run: |
+          # Klipper'ı derlemek için gerekli bağımlılıkları yükleyin
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi
+
+          # Özel ayarlarınızı `.config` dosyasına yazın
+          # STM32F103 ve 20KiB bootloader için
+          echo "CONFIG_MCU_STM32F103=y" > .config
+          echo "CONFIG_BOARD_MKS_ROBIN_E3D_V1_1=y" >> .config
+          echo "CONFIG_BOOTLOADER_20k=y" >> .config
+          echo "CONFIG_USB_SERIAL=y" >> .config
+
+          # Gerekli tüm derleme seçeneklerini otomatik olarak yapılandırın
+          make olddefconfig
+
+          # Firmware'i derleyin
+          make
+
+      - name: Zip Firmware
+        run: |
+          # Oluşturulan .bin dosyasını ziple
+          zip -j klipper-firmware.zip out/klipper.bin
+
+      - name: Upload Firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: klipper-firmware
+          path: klipper-firmware.zip
