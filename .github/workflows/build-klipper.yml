@@ -1,0 +1,120 @@
+name: MKS Robin E3D Firmware Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git build-essential
+
+      - name: Configure and Build Klipper Firmware
+        run: |
+          git clone https://github.com/Klipper3d/klipper.git --depth=1
+          cd klipper
+          
+          # MKS Robin E3D v1.1 için Klipper make menuconfig ayarları
+          # İşlemci Modeli (Processor model) ve Bootloader ayarları kritik öneme sahiptir.
+          cat > .config << EOF
+          CONFIG_MCU="lpc1768"
+          CONFIG_STM32_FLASH_START_OFFSET=0
+          CONFIG_AVR_ATMEGA_USB_SERIAL_CFG=
+          CONFIG_AVR_ATMEGA_USB_CANBUS_CFG=
+          CONFIG_AVR_ATMEGA_USART_CFG=
+          CONFIG_AVR_ATMEGA_I2C_CFG=
+          CONFIG_AVR_ATMEGA_SPI_CFG=
+          CONFIG_AVR_ATMEGA_DFU_CFG=
+          CONFIG_LPC176X_USB_SERIAL_CFG=
+          CONFIG_LPC176X_USB_CANBUS_CFG=
+          CONFIG_LPC176X_USART_CFG=
+          CONFIG_LPC176X_I2C_CFG=
+          CONFIG_LPC176X_SPI_CFG=
+          CONFIG_LPC176X_ETHERNET_CFG=
+          CONFIG_LPC176X_USB_DFU_CFG=
+          CONFIG_LPC176X_USART_DFU_CFG=
+          CONFIG_LPC176X_ETHERNET_DFU_CFG=
+          CONFIG_SAMD_USB_SERIAL_CFG=
+          CONFIG_SAMD_USB_CANBUS_CFG=
+          CONFIG_SAMD_USART_CFG=
+          CONFIG_SAMD_I2C_CFG=
+          CONFIG_SAMD_SPI_CFG=
+          CONFIG_SAMD_USB_DFU_CFG=
+          CONFIG_SAMD_USART_DFU_CFG=
+          CONFIG_SAMD_I2C_DFU_CFG=
+          CONFIG_SAMD_SPI_DFU_CFG=
+          CONFIG_AVR_SAMD_I2C_DFU_CFG=
+          CONFIG_AVR_SAMD_SPI_DFU_CFG=
+          CONFIG_AVR_SAMD_USART_DFU_CFG=
+          CONFIG_AVR_SAMD_USB_DFU_CFG=
+          CONFIG_ATSAMD21_USB_SERIAL_CFG=
+          CONFIG_ATSAMD21_USB_CANBUS_CFG=
+          CONFIG_ATSAMD21_USART_CFG=
+          CONFIG_ATSAMD21_I2C_CFG=
+          CONFIG_ATSAMD21_SPI_CFG=
+          CONFIG_ATSAMD21_USB_DFU_CFG=
+          CONFIG_ATSAMD21_USART_DFU_CFG=
+          CONFIG_ATSAMD21_I2C_DFU_CFG=
+          CONFIG_ATSAMD21_SPI_DFU_CFG=
+          CONFIG_SAMD51_USB_SERIAL_CFG=
+          CONFIG_SAMD51_USB_CANBUS_CFG=
+          CONFIG_SAMD51_USART_CFG=
+          CONFIG_SAMD51_I2C_CFG=
+          CONFIG_SAMD51_SPI_CFG=
+          CONFIG_SAMD51_USB_DFU_CFG=
+          CONFIG_SAMD51_USART_DFU_CFG=
+          CONFIG_SAMD51_I2C_DFU_CFG=
+          CONFIG_SAMD51_SPI_DFU_CFG=
+          CONFIG_WANT_LPC176X_ETHERNET=y
+          CONFIG_WANT_LPC176X_USB=y
+          CONFIG_WANT_SAMD_SERIAL=y
+          CONFIG_WANT_AVR_SERIAL=y
+          CONFIG_WANT_USB_DFU=y
+          CONFIG_WANT_UART_DFU=y
+          CONFIG_HAVE_CANBUS=y
+          CONFIG_HAVE_LPC176X_ETHERNET=y
+          CONFIG_HAVE_LPC176X_USB=y
+          CONFIG_HAVE_SAMD_SERIAL=y
+          CONFIG_HAVE_AVR_SERIAL=y
+          CONFIG_HAVE_USB_DFU=y
+          CONFIG_HAVE_UART_DFU=y
+          CONFIG_WANT_FIRMWARE_VERSION_STRING=y
+          CONFIG_FIRMWARE_VERSION_STRING="v0.13.0-213-gd34d3b05b"
+          CONFIG_INLINE_STEPPER_HACK=y
+          CONFIG_HAVE_STEPPER_OPTIMIZED_BOTH_EDGE=y
+          CONFIG_WANT_STEPPER_OPTIMIZED_BOTH_EDGE=y
+          CONFIG_INITIAL_PINS=""
+          CONFIG_HAVE_GPIO=y
+          CONFIG_HAVE_GPIO_ADC=y
+          CONFIG_HAVE_GPIO_SPI=y
+          CONFIG_HAVE_GPIO_I2C=y
+          CONFIG_HAVE_GPIO_HARD_PWM=y
+          CONFIG_HAVE_STRICT_TIMING=y
+          CONFIG_HAVE_CHIPID=y
+          CONFIG_HAVE_BOOTLOADER_REQUEST=y
+          EOF
+          
+          # Firmware'i temizle ve derle
+          make olddefconfig
+          make
+
+      - name: Convert klipper.bin to Robin_e3.bin
+        run: |
+          cd klipper
+          ./scripts/update_mks_robin.py out/klipper.bin out/Robin_e3.bin
+
+      - name: Upload Firmware to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Robin_e3-firmware
+          path: klipper/out/Robin_e3.bin
